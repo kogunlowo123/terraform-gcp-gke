@@ -16,6 +16,58 @@ Supports both **Autopilot** and **Standard** cluster modes with the following pr
 - **Shielded GKE Nodes** with secure boot and integrity monitoring
 - **Maintenance windows** for controlled upgrade scheduling
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Cluster["GKE Cluster (Standard / Autopilot)"]
+        style Cluster fill:#0078D4,color:#fff
+        ControlPlane["Control Plane\n(Master)"]
+        ReleaseChannel["Release Channel"]
+        PrivateCluster["Private Cluster Config"]
+    end
+
+    subgraph NodePools["Node Pools"]
+        style NodePools fill:#3F8624,color:#fff
+        DefaultPool["Default Pool"]
+        CustomPool["Custom Pool(s)"]
+        Autoscaler["Cluster Autoscaler\n(NAP)"]
+        VPA["Vertical Pod\nAutoscaling"]
+    end
+
+    subgraph Security["Security"]
+        style Security fill:#DD344C,color:#fff
+        WorkloadIdentity["Workload Identity"]
+        BinaryAuth["Binary Authorization"]
+        ShieldedNodes["Shielded GKE Nodes"]
+        ConfidentialNodes["Confidential Nodes"]
+    end
+
+    subgraph Networking["Networking"]
+        style Networking fill:#FF9900,color:#fff
+        VPC["VPC Network"]
+        Subnet["Subnet"]
+        PodsRange["Pods Secondary Range"]
+        ServicesRange["Services Secondary Range"]
+        NetworkPolicy["Network Policy\n(Dataplane V2)"]
+    end
+
+    subgraph Operations["Operations"]
+        style Operations fill:#8C4FFF,color:#fff
+        MaintenanceWin["Maintenance Window"]
+        Logging["Cloud Logging"]
+        Monitoring["Cloud Monitoring"]
+    end
+
+    Cluster --> NodePools
+    Cluster --> Security
+    Cluster --> Networking
+    Cluster --> Operations
+    VPC --> Subnet
+    Subnet --> PodsRange
+    Subnet --> ServicesRange
+```
+
 ## Usage
 
 ### Basic Standard Cluster
