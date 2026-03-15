@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>terraform-gcp-gke | Architecture</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0c0b;color:#f5f2eb;font-family:'Courier New',Courier,monospace;line-height:1.7;padding:0}
+a{color:#c8420a;text-decoration:none}a:hover{text-decoration:underline}
+.accent{color:#c8420a}
+.container{max-width:1200px;margin:0 auto;padding:2rem}
+header{background:linear-gradient(135deg,#0b0c0b 0%,#1a1b1a 100%);border-bottom:2px solid #c8420a;padding:2rem 0}
+header .container{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+header h1{font-size:1.8rem;letter-spacing:1px}
+.badge{display:inline-flex;align-items:center;gap:.5rem;background:#1a1b1a;border:1px solid #333;border-radius:6px;padding:.4rem .8rem;font-size:.8rem}
+.badge img{height:18px}
+.section{margin:3rem 0}
+.section h2{font-size:1.4rem;color:#c8420a;border-bottom:1px solid #222;padding-bottom:.5rem;margin-bottom:1.5rem}
+.section h3{font-size:1.1rem;color:#f5f2eb;margin:1.5rem 0 .75rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.card{background:#131413;border:1px solid #222;border-radius:8px;padding:1.25rem;transition:border-color .2s}
+.card:hover{border-color:#c8420a}
+.card h3{margin:0 0 .5rem;font-size:1rem;color:#c8420a}
+.card p{font-size:.85rem;color:#aaa}
+.card .stat{font-size:1.6rem;font-weight:bold;color:#f5f2eb}
+.diagram{background:#131413;border:1px solid #222;border-radius:8px;padding:2rem;overflow-x:auto}
+.diagram .flow{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.5rem}
+.diagram .box{background:#1a1b1a;border:1px solid #c8420a;border-radius:6px;padding:.75rem 1.25rem;text-align:center;font-size:.8rem;min-width:120px}
+.diagram .box.highlight{background:#c8420a;color:#fff;border-color:#c8420a}
+.diagram .arrow{color:#c8420a;font-size:1.2rem}
+.diagram .row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.5rem;margin:.75rem 0}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:1rem 0}
+table th{text-align:left;padding:.6rem;background:#1a1b1a;color:#c8420a;border-bottom:2px solid #c8420a}
+table td{padding:.6rem;border-bottom:1px solid #1a1b1a}
+table tr:hover td{background:#131413}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:.4rem 0;padding-left:1.5rem;position:relative;font-size:.9rem}
+.checklist li::before{content:"[x]";position:absolute;left:0;color:#c8420a;font-weight:bold}
+code{background:#1a1b1a;padding:.15rem .4rem;border-radius:3px;font-size:.85rem;color:#c8420a}
+pre{background:#131413;border:1px solid #222;border-radius:8px;padding:1.25rem;overflow-x:auto;font-size:.82rem;line-height:1.6}
+footer{border-top:2px solid #c8420a;margin-top:4rem;padding:2rem 0;text-align:center;font-size:.8rem;color:#555}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+.tag{display:inline-block;background:#1a1b1a;border:1px solid #333;border-radius:4px;padding:.15rem .5rem;font-size:.75rem;margin:.15rem}
+</style>
+</head>
+<body>
+<header>
+<div class="container">
+<div>
+<h1>terraform-gcp-gke</h1>
+<p style="color:#aaa;font-size:.9rem;margin-top:.25rem">Production-Ready Google Kubernetes Engine Module</p>
+</div>
+<div style="display:flex;gap:.75rem;align-items:center">
+<span class="badge"><img src="https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0f2f25834f5f2f981ee4e9bc3ad30721d1c038af/cloud/images/favicons/onecloud/super_cloud.png" alt="GCP">Google Cloud Platform</span>
+<span class="badge">Terraform Module</span>
+</div>
+</div>
+</header>
+
+<div class="container">
+
+<!-- Executive Summary -->
+<div class="section">
+<h2>Executive Summary</h2>
+<p>This Terraform module provisions production-grade Google Kubernetes Engine (GKE) clusters on GCP, supporting both <strong>Autopilot</strong> and <strong>Standard</strong> cluster modes. It implements enterprise security controls including Workload Identity, Binary Authorization, Confidential Nodes, Dataplane V2 (Cilium), shielded nodes, and private cluster configurations. The module manages the full lifecycle: dedicated node service accounts with least-privilege IAM roles, configurable node pools with GPU support, cluster autoscaling (NAP), vertical pod autoscaling, maintenance windows, and integrated Cloud Logging/Monitoring.</p>
+</div>
+
+<!-- Overview Cards -->
+<div class="section">
+<h2>Overview</h2>
+<div class="cards">
+<div class="card"><div class="stat">4</div><h3>Core Resources</h3><p>GKE Cluster, Node Pools, Service Account, IAM Bindings</p></div>
+<div class="card"><div class="stat">5</div><h3>IAM Roles</h3><p>Log Writer, Metric Writer, Monitoring Viewer, AR Reader, GCR Reader</p></div>
+<div class="card"><div class="stat">26</div><h3>Input Variables</h3><p>Comprehensive configuration for networking, security, autoscaling</p></div>
+<div class="card"><div class="stat">14</div><h3>Outputs</h3><p>Cluster, node pool, networking, service account details</p></div>
+</div>
+</div>
+
+<!-- Architecture Diagram -->
+<div class="section">
+<h2>Architecture Diagram</h2>
+<div class="diagram">
+<div class="row">
+<div class="box highlight">GKE Cluster<br><small>Standard / Autopilot</small></div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">Control Plane<br><small>Release Channel</small></div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Private Cluster<br><small>Master Auth Networks</small></div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Workload Identity<br><small>Pool Config</small></div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">Node Pools<br><small>Autoscaling</small></div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Node SA<br><small>Least Privilege</small></div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Shielded Nodes<br><small>Secure Boot</small></div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">VPC Network<br><small>Subnet</small></div>
+<div class="arrow">--&gt;</div>
+<div class="box">Pods Range<br><small>Secondary CIDR</small></div>
+<div class="arrow">--&gt;</div>
+<div class="box">Services Range<br><small>Secondary CIDR</small></div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">Cloud Logging</div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Cloud Monitoring</div>
+<div class="arrow">&lt;--&gt;</div>
+<div class="box">Maintenance Window</div>
+</div>
+</div>
+</div>
+
+<!-- Component Breakdown -->
+<div class="section">
+<h2>Component Breakdown</h2>
+<div class="grid-2">
+<div>
+<h3>GKE Cluster (<code>google_container_cluster</code>)</h3>
+<p>Core cluster resource using <code>google-beta</code> provider. Supports Autopilot mode, release channels, private cluster config, master authorized networks, Dataplane V2, Binary Authorization, Confidential Nodes, VPA, and cluster-level autoscaling (NAP) with CPU/memory/GPU limits. Deletion protection is enabled by default.</p>
+
+<h3>Node Pools (<code>google_container_node_pool</code>)</h3>
+<p>Dynamically created for Standard clusters via <code>for_each</code>. Each pool supports configurable machine types, disk size/type, preemptible/spot instances, GPU accelerators, taints, labels, auto-repair, auto-upgrade, and shielded instance config with secure boot and integrity monitoring.</p>
+</div>
+<div>
+<h3>Node Service Account (<code>google_service_account</code>)</h3>
+<p>Dedicated service account for GKE nodes with 5 least-privilege IAM roles: logging.logWriter, monitoring.metricWriter, monitoring.viewer, artifactregistry.reader, and storage.objectViewer. Optional Workload Identity User binding.</p>
+
+<h3>Networking Integration</h3>
+<p>References existing VPC network and subnetwork via data sources. Configures pod and service secondary IP ranges, private cluster with optional private endpoint, and master authorized networks for API server access control.</p>
+</div>
+</div>
+</div>
+
+<!-- Data Flow -->
+<div class="section">
+<h2>Data Flow</h2>
+<div class="diagram">
+<div class="row">
+<div class="box">Developer / CI</div>
+<div class="arrow">--&gt;</div>
+<div class="box highlight">terraform apply</div>
+<div class="arrow">--&gt;</div>
+<div class="box">GCP API (google-beta)</div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">Service Account Created</div>
+<div class="arrow">--&gt;</div>
+<div class="box">IAM Roles Bound</div>
+<div class="arrow">--&gt;</div>
+<div class="box">Cluster Provisioned</div>
+<div class="arrow">--&gt;</div>
+<div class="box">Node Pools Scaled</div>
+</div>
+<div class="row">
+<div class="arrow">|</div>
+</div>
+<div class="row">
+<div class="box">Pods schedule on Nodes</div>
+<div class="arrow">--&gt;</div>
+<div class="box">Workload Identity tokens</div>
+<div class="arrow">--&gt;</div>
+<div class="box">GCP Services</div>
+</div>
+</div>
+</div>
+
+<!-- Security Controls -->
+<div class="section">
+<h2>Security Controls</h2>
+<table>
+<tr><th>Control</th><th>Implementation</th><th>Default</th></tr>
+<tr><td>Private Cluster</td><td>Nodes have no public IPs; optional private endpoint for master</td><td>Enabled</td></tr>
+<tr><td>Workload Identity</td><td>Pod-to-GCP-service authentication without key files</td><td>Enabled</td></tr>
+<tr><td>Dataplane V2 (Cilium)</td><td>eBPF-based networking with built-in network policy</td><td>Enabled</td></tr>
+<tr><td>Network Policy</td><td>Calico-based (for non-Dataplane V2 clusters)</td><td>Enabled</td></tr>
+<tr><td>Binary Authorization</td><td>Container image verification before deployment</td><td>Disabled</td></tr>
+<tr><td>Confidential Nodes</td><td>Hardware-level memory encryption (AMD SEV)</td><td>Disabled</td></tr>
+<tr><td>Shielded Nodes</td><td>Secure boot + integrity monitoring on all node pools</td><td>Always On</td></tr>
+<tr><td>Master Auth Networks</td><td>CIDR-based access control to API server</td><td>Configurable</td></tr>
+<tr><td>Least-Privilege SA</td><td>Dedicated node SA with 5 minimal IAM roles</td><td>Always On</td></tr>
+<tr><td>Legacy Endpoints Disabled</td><td>Metadata server hardening via node metadata</td><td>Always On</td></tr>
+</table>
+</div>
+
+<!-- Industry Adaptation -->
+<div class="section">
+<h2>Industry Adaptation</h2>
+<div class="cards">
+<div class="card"><h3>Financial Services</h3><p>Enable Confidential Nodes + Binary Authorization + private endpoint for regulatory compliance. Use Stable release channel.</p></div>
+<div class="card"><h3>Healthcare / HIPAA</h3><p>Private cluster with master authorized networks. Enable VPC Flow Logs on subnets. Use CMEK for etcd encryption.</p></div>
+<div class="card"><h3>E-Commerce</h3><p>Autopilot mode for cost optimization. Enable cluster autoscaling (NAP) with spot instances for batch workloads.</p></div>
+<div class="card"><h3>AI / ML</h3><p>Standard cluster with GPU node pools (gpu_type, gpu_count). Use Rapid release channel for latest K8s features.</p></div>
+</div>
+</div>
+
+<!-- Production Readiness -->
+<div class="section">
+<h2>Production Readiness Checklist</h2>
+<ul class="checklist">
+<li>Private cluster with no public node IPs</li>
+<li>Workload Identity enabled (no exported service account keys)</li>
+<li>Shielded GKE Nodes with secure boot and integrity monitoring</li>
+<li>Dataplane V2 for network policy enforcement</li>
+<li>Dedicated node service account with least-privilege roles</li>
+<li>Maintenance window configured for off-peak hours</li>
+<li>Cluster autoscaling or Autopilot for resource optimization</li>
+<li>Cloud Logging and Cloud Monitoring enabled</li>
+<li>Vertical Pod Autoscaling enabled for right-sizing</li>
+<li>Master authorized networks for API server protection</li>
+<li>Deletion protection enabled by default</li>
+<li>Release channel set to REGULAR for controlled upgrades</li>
+</ul>
+</div>
+
+<!-- Config Reference -->
+<div class="section">
+<h2>Configuration Reference</h2>
+<h3>Key Input Variables</h3>
+<table>
+<tr><th>Variable</th><th>Type</th><th>Default</th><th>Description</th></tr>
+<tr><td><code>project_id</code></td><td>string</td><td>required</td><td>GCP project ID</td></tr>
+<tr><td><code>cluster_name</code></td><td>string</td><td>required</td><td>Name of the GKE cluster</td></tr>
+<tr><td><code>region</code></td><td>string</td><td>required</td><td>GCP region</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>required</td><td>VPC network name</td></tr>
+<tr><td><code>subnetwork</code></td><td>string</td><td>required</td><td>Subnetwork name</td></tr>
+<tr><td><code>enable_autopilot</code></td><td>bool</td><td>false</td><td>Enable Autopilot mode</td></tr>
+<tr><td><code>enable_private_cluster</code></td><td>bool</td><td>true</td><td>Enable private cluster</td></tr>
+<tr><td><code>enable_workload_identity</code></td><td>bool</td><td>true</td><td>Enable Workload Identity</td></tr>
+<tr><td><code>enable_dataplane_v2</code></td><td>bool</td><td>true</td><td>Dataplane V2 (Cilium)</td></tr>
+<tr><td><code>release_channel</code></td><td>string</td><td>REGULAR</td><td>Release channel</td></tr>
+<tr><td><code>node_pools</code></td><td>list(object)</td><td>[default-pool]</td><td>Node pool configurations</td></tr>
+</table>
+
+<h3>Key Outputs</h3>
+<table>
+<tr><th>Output</th><th>Description</th><th>Sensitive</th></tr>
+<tr><td><code>cluster_id</code></td><td>Unique identifier of the cluster</td><td>No</td></tr>
+<tr><td><code>cluster_endpoint</code></td><td>IP address of the cluster master</td><td>Yes</td></tr>
+<tr><td><code>cluster_ca_certificate</code></td><td>Base64-encoded CA certificate</td><td>Yes</td></tr>
+<tr><td><code>node_service_account_email</code></td><td>Node service account email</td><td>No</td></tr>
+<tr><td><code>workload_identity_pool</code></td><td>Workload Identity pool identifier</td><td>No</td></tr>
+</table>
+</div>
+
+<!-- Deployment -->
+<div class="section">
+<h2>Deployment</h2>
+<pre>
+# Initialize and deploy
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+
+# Get cluster credentials
+gcloud container clusters get-credentials $(terraform output -raw cluster_name) \
+  --region $(terraform output -raw cluster_location) \
+  --project YOUR_PROJECT_ID
+</pre>
+</div>
+
+<!-- Links -->
+<div class="section">
+<h2>Links</h2>
+<p>
+<a href="https://cloud.google.com/kubernetes-engine/docs">GKE Documentation</a> |
+<a href="https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster">Terraform Registry</a> |
+<a href="https://github.com/kogunlowo123/terraform-gcp-gke">GitHub Repository</a> |
+<a href="https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview">Autopilot Overview</a> |
+<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster">Cluster Hardening</a>
+</p>
+</div>
+
+</div>
+
+<footer>
+<div class="container">
+<p>terraform-gcp-gke | Architecture Documentation</p>
+<p style="margin-top:.5rem">Generated from source analysis | Terraform >= 1.5.0 | Google Provider >= 5.10.0</p>
+</div>
+</footer>
+</body>
+</html>
