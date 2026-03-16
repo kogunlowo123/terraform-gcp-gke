@@ -1,7 +1,3 @@
-###############################################################################
-# GKE Node Service Account
-###############################################################################
-
 resource "google_service_account" "gke_node_sa" {
   project      = var.project_id
   account_id   = "${var.cluster_name}-node-sa"
@@ -38,10 +34,6 @@ resource "google_project_iam_member" "node_sa_gcr_reader" {
   member  = "serviceAccount:${google_service_account.gke_node_sa.email}"
 }
 
-###############################################################################
-# Workload Identity IAM Binding
-###############################################################################
-
 resource "google_project_iam_member" "workload_identity_user" {
   count = var.enable_workload_identity ? 1 : 0
 
@@ -50,34 +42,26 @@ resource "google_project_iam_member" "workload_identity_user" {
   member  = "serviceAccount:${google_service_account.gke_node_sa.email}"
 }
 
-###############################################################################
-# GKE Cluster
-###############################################################################
-
 resource "google_container_cluster" "cluster" {
   provider = google-beta
 
-  name     = local.cluster_name
+  name     = var.cluster_name
   project  = var.project_id
-  location = local.location
+  location = var.region
 
-  node_locations = local.node_locations
+  node_locations = length(var.zones) > 0 ? var.zones : null
 
-  # Autopilot mode
   enable_autopilot = var.enable_autopilot
 
-  # For Standard clusters, we manage node pools separately
   remove_default_node_pool = var.enable_autopilot ? null : true
   initial_node_count       = var.enable_autopilot ? null : 1
 
-  # Kubernetes version and release channel
   min_master_version = var.kubernetes_version != "latest" ? var.kubernetes_version : null
 
   release_channel {
     channel = var.release_channel
   }
 
-  # Networking
   network    = data.google_compute_network.network.self_link
   subnetwork = data.google_compute_subnetwork.subnetwork.self_link
 
@@ -86,7 +70,6 @@ resource "google_container_cluster" "cluster" {
     services_secondary_range_name = var.services_range_name
   }
 
-  # Private cluster configuration
   dynamic "private_cluster_config" {
     for_each = var.enable_private_cluster ? [1] : []
     content {
@@ -96,12 +79,11 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Master authorized networks
   dynamic "master_authorized_networks_config" {
-    for_each = length(local.master_authorized_cidr_blocks) > 0 ? [1] : []
+    for_each = length(var.master_authorized_networks) > 0 ? [1] : []
     content {
       dynamic "cidr_blocks" {
-        for_each = local.master_authorized_cidr_blocks
+        for_each = var.master_authorized_networks
         content {
           cidr_block   = cidr_blocks.value.cidr_block
           display_name = cidr_blocks.value.display_name
@@ -110,15 +92,13 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Workload Identity
   dynamic "workload_identity_config" {
     for_each = var.enable_workload_identity ? [1] : []
     content {
-      workload_pool = local.workload_identity_pool
+      workload_pool = "${var.project_id}.svc.id.goog"
     }
   }
 
-  # Binary Authorization
   dynamic "binary_authorization" {
     for_each = var.enable_binary_authorization ? [1] : []
     content {
@@ -126,7 +106,6 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Network Policy (Standard clusters only)
   dynamic "network_policy" {
     for_each = var.enable_network_policy && !var.enable_autopilot && !var.enable_dataplane_v2 ? [1] : []
     content {
@@ -135,16 +114,8 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Dataplane V2
-  dynamic "datapath_provider" {
-    for_each = var.enable_dataplane_v2 ? [1] : []
-    content {
-    }
-  }
-
   datapath_provider = var.enable_dataplane_v2 ? "ADVANCED_DATAPATH" : "LEGACY_DATAPATH"
 
-  # Confidential Nodes
   dynamic "confidential_nodes" {
     for_each = var.enable_confidential_nodes ? [1] : []
     content {
@@ -152,12 +123,10 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Vertical Pod Autoscaling
   vertical_pod_autoscaling {
     enabled = var.enable_vertical_pod_autoscaling
   }
 
-  # Cluster Autoscaling (NAP)
   dynamic "cluster_autoscaling" {
     for_each = var.cluster_autoscaling.enabled && !var.enable_autopilot ? [1] : []
     content {
@@ -186,7 +155,6 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Maintenance window
   maintenance_policy {
     recurring_window {
       start_time = var.maintenance_window.start_time
@@ -195,22 +163,17 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
-  # Logging & Monitoring
   logging_service    = var.logging_service
   monitoring_service = var.monitoring_service
 
-  # Config Sync via fleet membership is handled separately if needed.
-  # Addon config for Config Management (Config Sync)
   addons_config {
     config_connector_config {
       enabled = var.enable_workload_identity
     }
   }
 
-  # Resource labels
-  resource_labels = local.cluster_labels
+  resource_labels = var.labels
 
-  # Deletion protection
   deletion_protection = true
 
   lifecycle {
@@ -220,10 +183,6 @@ resource "google_container_cluster" "cluster" {
   }
 }
 
-###############################################################################
-# GKE Node Pools (Standard clusters only)
-###############################################################################
-
 resource "google_container_node_pool" "node_pools" {
   for_each = var.enable_autopilot ? {} : { for np in var.node_pools : np.name => np }
 
@@ -231,7 +190,7 @@ resource "google_container_node_pool" "node_pools" {
 
   name     = each.value.name
   project  = var.project_id
-  location = local.location
+  location = var.region
   cluster  = google_container_cluster.cluster.name
 
   node_count = null
@@ -257,7 +216,7 @@ resource "google_container_node_pool" "node_pools" {
     service_account = google_service_account.gke_node_sa.email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
 
-    labels = merge(local.cluster_labels, each.value.labels)
+    labels = merge(var.labels, each.value.labels)
 
     dynamic "taint" {
       for_each = each.value.taints

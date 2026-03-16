@@ -1,7 +1,3 @@
-###############################################################################
-# Project & Location
-###############################################################################
-
 variable "project_id" {
   description = "The GCP project ID where the GKE cluster will be created."
   type        = string
@@ -18,14 +14,10 @@ variable "region" {
 }
 
 variable "zones" {
-  description = "The list of zones within the region for the cluster nodes."
+  description = "List of zones within the region for the cluster nodes."
   type        = list(string)
   default     = []
 }
-
-###############################################################################
-# Networking
-###############################################################################
 
 variable "network" {
   description = "The VPC network to host the cluster in."
@@ -74,19 +66,11 @@ variable "master_authorized_networks" {
   default = []
 }
 
-###############################################################################
-# Cluster Mode
-###############################################################################
-
 variable "enable_autopilot" {
   description = "Whether to create an Autopilot cluster instead of a Standard cluster."
   type        = bool
   default     = false
 }
-
-###############################################################################
-# Kubernetes Version & Release Channel
-###############################################################################
 
 variable "kubernetes_version" {
   description = "The Kubernetes version for the cluster master and nodes."
@@ -95,14 +79,10 @@ variable "kubernetes_version" {
 }
 
 variable "release_channel" {
-  description = "The release channel for the cluster. Accepted values are UNSPECIFIED, RAPID, REGULAR, and STABLE."
+  description = "The release channel for the cluster (UNSPECIFIED, RAPID, REGULAR, STABLE)."
   type        = string
   default     = "REGULAR"
 }
-
-###############################################################################
-# Node Pools (Standard clusters only)
-###############################################################################
 
 variable "node_pools" {
   description = "List of node pool configurations for Standard clusters."
@@ -148,10 +128,6 @@ variable "node_pools" {
   ]
 }
 
-###############################################################################
-# Security & Features
-###############################################################################
-
 variable "enable_workload_identity" {
   description = "Whether to enable Workload Identity on the cluster."
   type        = bool
@@ -181,10 +157,6 @@ variable "enable_confidential_nodes" {
   type        = bool
   default     = false
 }
-
-###############################################################################
-# Autoscaling & Maintenance
-###############################################################################
 
 variable "cluster_autoscaling" {
   description = "Cluster-level autoscaling configuration (NAP)."
@@ -230,28 +202,20 @@ variable "enable_vertical_pod_autoscaling" {
   default     = true
 }
 
-###############################################################################
-# Logging & Monitoring
-###############################################################################
-
 variable "logging_service" {
-  description = "The logging service to use. Use logging.googleapis.com/kubernetes for Cloud Logging."
+  description = "The logging service to use for the cluster."
   type        = string
   default     = "logging.googleapis.com/kubernetes"
 }
 
 variable "monitoring_service" {
-  description = "The monitoring service to use. Use monitoring.googleapis.com/kubernetes for Cloud Monitoring."
+  description = "The monitoring service to use for the cluster."
   type        = string
   default     = "monitoring.googleapis.com/kubernetes"
 }
 
-###############################################################################
-# Tags
-###############################################################################
-
-variable "tags" {
-  description = "A map of tags to apply to all resources."
+variable "labels" {
+  description = "A map of labels to apply to all resources."
   type        = map(string)
   default     = {}
 }

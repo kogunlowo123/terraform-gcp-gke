@@ -1,7 +1,3 @@
-###############################################################################
-# Cluster Outputs
-###############################################################################
-
 output "cluster_id" {
   description = "The unique identifier of the GKE cluster."
   value       = google_container_cluster.cluster.id
@@ -39,10 +35,6 @@ output "cluster_master_version" {
   value       = google_container_cluster.cluster.master_version
 }
 
-###############################################################################
-# Node Pool Outputs
-###############################################################################
-
 output "node_pool_names" {
   description = "List of node pool names in the cluster."
   value       = [for np in google_container_node_pool.node_pools : np.name]
@@ -52,10 +44,6 @@ output "node_pool_versions" {
   description = "Map of node pool names to their Kubernetes versions."
   value       = { for np in google_container_node_pool.node_pools : np.name => np.version }
 }
-
-###############################################################################
-# Service Account Outputs
-###############################################################################
 
 output "node_service_account_email" {
   description = "The email of the GKE node service account."
@@ -67,30 +55,22 @@ output "node_service_account_id" {
   value       = google_service_account.gke_node_sa.id
 }
 
-###############################################################################
-# Networking Outputs
-###############################################################################
-
 output "cluster_private_endpoint" {
-  description = "The private IP address of the cluster master (if private cluster is enabled)."
+  description = "The private IP address of the cluster master."
   value       = try(google_container_cluster.cluster.private_cluster_config[0].private_endpoint, "")
 }
 
 output "cluster_public_endpoint" {
-  description = "The public IP address of the cluster master (if available)."
+  description = "The public IP address of the cluster master."
   value       = try(google_container_cluster.cluster.private_cluster_config[0].public_endpoint, "")
 }
 
 output "peering_name" {
-  description = "The name of the peering between the cluster VPC and the Google services VPC."
+  description = "The name of the peering between the cluster VPC and Google services VPC."
   value       = try(google_container_cluster.cluster.private_cluster_config[0].peering_name, "")
 }
 
-###############################################################################
-# Workload Identity
-###############################################################################
-
 output "workload_identity_pool" {
   description = "The Workload Identity pool for the cluster."
-  value       = local.workload_identity_pool
+  value       = var.enable_workload_identity ? "${var.project_id}.svc.id.goog" : ""
 }
